@@ -4,9 +4,9 @@
 
 #include "ros/ros.h"                    // allgemeiner Header für ROS
 #include <geometry_msgs/Twist.h>        // Nachricht zum Verschicken von Geschwindigkeitsbefehlen
-#include <turtlesim/Spawn.h>            // Spawn Service
+#include <turtlesim/Spawn.h>            // Spawn-Service
 #include <turtlesim/Pose.h>             // Nachricht für die Pose der Schildkröte
-#include <turtlesim/SetPen.h>
+#include <turtlesim/SetPen.h>           // Service zum Ändern der Spurfarbe
 
 
 void callbackPose(const turtlesim::Pose& msg)
@@ -22,36 +22,26 @@ int main(int argc, char **argv)
 {
   if(argc<2)
   {
-    std::cout << "Too less parameters. Expected: " << argv[0] << " <turtlename>" << std::endl;
+    std::cout << "Too few parameters.\nExpected call: rosrun turtle_control turtle_control_node <turtlename>" << std::endl;
     return -1;
   }
 
+  // Name des eigenen Knotens
+  std::string node_name(argv[1]);
+  ROS_INFO_STREAM("Neuer Knoten: " << node_name);
 
-  /**
-   * Name des eigenen Knotens
-   */
-  char node[64];
-  sprintf(node, "%s%s", argv[1], "_node");
-  printf("Neuer Knoten: %s\n", node);
-
-  ros::init(argc, argv, node);
-  ros::NodeHandle n;
+  ros::init(argc, argv, node_name);
+  ros::NodeHandle nh;
 
 
-  /**
-   * Name des publishers
-   */
-  char pubname[64];
-  sprintf(pubname, "%s/%s", argv[1], "cmd_vel");
-  printf("Publisher: %s\n", pubname);
+  std::string vel_topic(node_name + "/cmd_vel");
+  std::string pen_topic(node_name + "/set_pen");
+  std::string pose_topic(node_name + "/pose");
+  std::string spawn_topic("spawn");
 
 
-  char penname[64]; 
-  sprintf(penname, "%s/%s", argv[1], "set_pen"); 
-
-   ros::ServiceClient spawn_client= n.serviceClient<turtlesim::Spawn>("spawn"); 
-   ros::ServiceClient pen_client  = n.serviceClient<turtlesim::SetPen>(penname);   
-/*
+   ros::ServiceClient spawn_client= nh.serviceClient<turtlesim::Spawn>(spawn_topic); 
+   ros::ServiceClient pen_client  = nh.serviceClient<turtlesim::SetPen>(pen_topic);   
 
   /*
    * Implementieren Sie hier den Aufruf des Dienstes spawn. Hierzu müssen
@@ -82,16 +72,14 @@ int main(int argc, char **argv)
     * 2) Lassen Sie die Schildkröte ein Rechteck abfahren.
     *
     */
-  char posename[64]; 
-  sprintf(posename, "%s/%s", argv[1], "pose");
-  ros::Subscriber pose_sub = n.subscribe(posename, 1, callbackPose);
+  ros::Subscriber pose_sub = nh.subscribe(pose_topic, 1, callbackPose);
 
 
-  /**
+  /*
    * Implementieren Sie hier das Versenden von Nachrichten
    * zur Steuerung der Schildkröte
    */
-   ros::Publisher vel_pub = n.advertise<geometry_msgs::Twist>(pubname, 1); 
+   ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>(vel_topic, 1); 
    ros::Rate r(10); 
 
 
